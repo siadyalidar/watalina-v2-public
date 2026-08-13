@@ -26,6 +26,9 @@ function urgencyLabel(ds){
   return d+' gun kaldi';
 }
 function typeLabel(t){return{maintenance:'Periyodik Bakım',filter:'Filtre Değişimi',install:'Kurulum / Montaj','sok-tak':'Sök-Tak',repair:'Arıza / Tamir',visit:'Kontrol Ziyareti',musluk:'Musluk Değişimi'}[t]||t;}
+// Periyodik bakım ve sök-tak islemleri de genelde filtre yenilemeyi kapsar,
+// bu yuzden "filtre degisimi ne zaman yapildi" hesabinda bunlar da sayilir.
+function isFilterRelatedType(t){return t==='filter'||t==='maintenance'||t==='sok-tak';}
 function typeBadgeClass(t){return{maintenance:'badge-maintenance',filter:'badge-filter',install:'badge-install',repair:'badge-repair',visit:'badge-maintenance'}[t]||'badge-maintenance';}
 
 // ══ CUSTOMER LIST ═══════════════════════════════════════
@@ -98,8 +101,9 @@ function renderAiSuggestions(data){
     var d=daysUntil(last.nextDate);
     if(d!==null&&d<0)suggestions.push({dot:'red',text:'<strong>'+c.name+'</strong> - Bakim <strong>'+Math.abs(d)+' gun geride</strong>. Acil randevu planlanmali.'});
     else if(d!==null&&d<=7)suggestions.push({dot:'yellow',text:'<strong>'+c.name+'</strong> - Bakim <strong>'+(d===0?'bugun':d+' gun icinde')+'</strong>. Rotaya ekleyin.'});
-    var fr=cr.filter(function(r){return r.type==='filter';});
+    var fr=cr.filter(function(r){return isFilterRelatedType(r.type);});
     if(fr.length>0){var months2=(now-new Date(fr[0].date))/(1000*60*60*24*30);if(months2>=5.5)suggestions.push({dot:'yellow',text:'<strong>'+c.name+'</strong> - Son filtre degisiminin uzerinden '+Math.floor(months2)+' ay gecti.'});}
+    else if(c.installDate){var months2b=(now-new Date(c.installDate))/(1000*60*60*24*30);if(months2b>=6)suggestions.push({dot:'yellow',text:'<strong>'+c.name+'</strong> - Kurulumdan bu yana filtre degisimi yapilmamis. '+Math.floor(months2b)+' ay gecti.'});}
   });
   if(!suggestions.length)suggestions.push({dot:'green',text:'Tum musteriler guncel. Yakin kritik bakim bulunmuyor.'});
   var el=document.getElementById('aiSuggestions');
@@ -195,8 +199,14 @@ function showCustomerDetail(custId){
   else{
     var d2=daysUntil(recs[0].nextDate);
     if(d2!==null&&d2<0)suggestions.push({dot:'red',text:'Sonraki bakim <strong>'+Math.abs(d2)+' gun geride</strong>. Acil randevu.'});
-    var fr2=recs.filter(function(r){return r.type==='filter';});
-    if(!fr2.length&&cust.installDate){var months3=(new Date()-new Date(cust.installDate))/(1000*60*60*24*30);if(months3>=6)suggestions.push({dot:'yellow',text:'Kurulumdan bu yana <strong>filtre degisimi yapilmamis</strong>. '+Math.floor(months3)+' ay gecti.'});}
+    var fr2=recs.filter(function(r){return isFilterRelatedType(r.type);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+    if(fr2.length){
+      var months3=(new Date()-new Date(fr2[0].date))/(1000*60*60*24*30);
+      if(months3>=6)suggestions.push({dot:'yellow',text:'Son <strong>filtre degisiminin</strong> uzerinden '+Math.floor(months3)+' ay gecti.'});
+    }else if(cust.installDate){
+      var months3b=(new Date()-new Date(cust.installDate))/(1000*60*60*24*30);
+      if(months3b>=6)suggestions.push({dot:'yellow',text:'Kurulumdan bu yana <strong>filtre degisimi yapilmamis</strong>. '+Math.floor(months3b)+' ay gecti.'});
+    }
     var total=recs.reduce(function(s,r){return s+(r.fee||0);},0);
     if(total>0)suggestions.push({dot:'green',text:'Toplam servis geliri: <strong>'+fmtUSD(total)+'</strong> ('+recs.length+' kayit).'});
   }
