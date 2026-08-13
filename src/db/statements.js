@@ -56,6 +56,9 @@ const stmts = {
   insertRecord:         db.prepare(
     'INSERT INTO service_records (customer_id, type, date, next_date, tech, fee, notes, created_by) VALUES (?,?,?,?,?,?,?,?)'
   ),
+  updateRecord: db.prepare(
+    'UPDATE service_records SET type=?, date=?, next_date=?, tech=?, fee=?, notes=? WHERE id=?'
+  ),
   deleteRecord: db.prepare('DELETE FROM service_records WHERE id = ?'),
 
   // ── Product Overrides ──────────────────────────────

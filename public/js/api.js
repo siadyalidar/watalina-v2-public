@@ -117,6 +117,9 @@ const Api = {
   async addRecord(r) {
     return this.post('/api/service/records', r);
   },
+  async updateRecord(id, r) {
+    return this.put('/api/service/records/' + id, r);
+  },
   async deleteRecord(id) {
     return this.del('/api/service/records/' + id);
   },
