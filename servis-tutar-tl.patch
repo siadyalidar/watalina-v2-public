@@ -1,0 +1,22 @@
+diff --git a/public/js/service.js b/public/js/service.js
+index 0000000..0000000 100644
+--- a/public/js/service.js
++++ b/public/js/service.js
+@@ -194,7 +194,7 @@
+         +'<div class="stl-date">'+new Date(r.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})+'</div>'
+         +'<div class="stl-title">'+typeLabel(r.type)+'</div>'
+         +(r.note?'<div class="stl-note">'+r.note+'</div>':'')
+-        +'<div class="stl-tech">'+(r.tech?r.tech+' ':'')+''+(r.fee?'- '+fmtUSD(r.fee)+' ':'')+''+(r.nextDate?'- Sonraki: '+new Date(r.nextDate).toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'}):'')+'</div>'
++        +'<div class="stl-tech">'+(r.tech?r.tech+' ':'')+''+(r.fee?'- '+fmtTL(r.fee)+' ':'')+''+(r.nextDate?'- Sonraki: '+new Date(r.nextDate).toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'}):'')+'</div>'
+         +'</div>';
+     }).join('');
+   }
+@@ -212,7 +212,7 @@
+       if(months3b>=6)suggestions.push({dot:'yellow',text:'Kurulumdan bu yana <strong>filtre degisimi yapilmamis</strong>. '+Math.floor(months3b)+' ay gecti.'});
+     }
+     var total=recs.reduce(function(s,r){return s+(r.fee||0);},0);
+-    if(total>0)suggestions.push({dot:'green',text:'Toplam servis geliri: <strong>'+fmtUSD(total)+'</strong> ('+recs.length+' kayit).'});
++    if(total>0)suggestions.push({dot:'green',text:'Toplam servis geliri: <strong>'+fmtTL(total)+'</strong> ('+recs.length+' kayit).'});
+   }
+   if(!suggestions.length)suggestions.push({dot:'green',text:'Musteri guncel durumda.'});
+   var cas=document.getElementById('custAiSuggestions');
