@@ -92,6 +92,16 @@ router.post('/records', auth(['admin', 'service']), (req, res) => {
   ok(res, { id: info.lastInsertRowid });
 });
 
+// PUT /api/service/records/:id
+router.put('/records/:id', auth(['admin', 'service']), (req, res) => {
+  const id = Number(req.params.id);
+  const { type, date, nextDate, tech, fee, note } = req.body || {};
+  if (!date) return err(res, 'date gerekli');
+  stmts.updateRecord.run(type || 'maintenance', date, nextDate || null, tech || '', Number(fee) || 0, note || '', id);
+  broadcastEvent('svc-changed', { resource: 'records', action: 'update', id: String(id), by: req.user.id });
+  ok(res, { message: 'Güncellendi' });
+});
+
 // DELETE /api/service/records/:id
 router.delete('/records/:id', auth(['admin', 'service']), (req, res) => {
   const id = Number(req.params.id);

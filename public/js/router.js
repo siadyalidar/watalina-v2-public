@@ -222,6 +222,11 @@ document.addEventListener('click', function(e) {
       if (recordId) deleteSvcRecord(recordId);
       break;
     }
+    case 'editSvcRecord': {
+      const recordId = el.dataset.recordid;
+      if (recordId) openEditServiceModal(recordId);
+      break;
+    }
     case 'svcDashboard': showSvcDashboard(); break;
     case 'openNewOrderModal':  openNewOrderModal(); break;
     case 'closeNewOrderModal': closeNewOrderModal(); break;

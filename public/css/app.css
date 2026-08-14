@@ -1116,7 +1116,11 @@ body { background:var(--c-bg); font-size:12.5px; -webkit-font-smoothing:antialia
 .cdh-btn.primary{background:#1a1a1a;color:white;border-color:#1a1a1a}.cdh-btn.primary:hover{background:#000}
 .svc-timeline{position:relative;padding-left:22px}
 .svc-timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--c-border)}
-.svc-tl-item{position:relative;margin-bottom:12px;background:var(--c-surf);border:1px solid var(--c-border);border-radius:6px;padding:10px 14px}
+.svc-tl-item{position:relative;margin-bottom:12px;background:var(--c-surf);border:1px solid var(--c-border);border-radius:6px;padding:10px 52px 10px 14px}
+.stl-actions{position:absolute;top:8px;right:10px;display:flex;gap:4px}
+.stl-btn{background:var(--c-surf2);border:1px solid var(--c-border);border-radius:4px;width:22px;height:22px;font-size:.68rem;line-height:1;cursor:pointer;color:var(--c-ink2);display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}
+.stl-btn:hover{background:#e8e8e5}
+.stl-btn-danger:hover{background:#fde2e2;color:#c0392b;border-color:#f3b4b4}
 .svc-tl-item::before{content:'';position:absolute;left:-18px;top:13px;width:8px;height:8px;border-radius:50%;background:var(--c-border2);border:2px solid white}
 .svc-tl-item.maintenance::before{background:#1a6b9a}.svc-tl-item.install::before{background:var(--c-green)}
 .svc-tl-item.repair::before{background:var(--c-amber)}.svc-tl-item.filter::before{background:#6a1a9a}

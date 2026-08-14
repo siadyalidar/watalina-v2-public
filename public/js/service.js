@@ -187,6 +187,10 @@ function showCustomerDetail(custId){
   else{
     tl.innerHTML=recs.map(function(r){
       return'<div class="svc-tl-item '+r.type+'">'
+        +'<div class="stl-actions">'
+          +'<button class="stl-btn" data-action="editSvcRecord" data-recordid="'+r.id+'" title="Düzenle">✎</button>'
+          +'<button class="stl-btn stl-btn-danger" data-action="deleteRecord" data-recordid="'+r.id+'" title="Sil">✕</button>'
+        +'</div>'
         +'<div class="stl-date">'+new Date(r.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})+'</div>'
         +'<div class="stl-title">'+typeLabel(r.type)+'</div>'
         +(r.note?'<div class="stl-note">'+r.note+'</div>':'')
@@ -287,19 +291,43 @@ function saveNewCustomer(){
     if(btn){btn.disabled=false;btn.textContent='Kaydet';}
   });
 }
+var _editingRecordId=null;
 function openAddServiceModal(custId){
+  _editingRecordId=null;
   var data=_svcCache;
   var sel=document.getElementById('svcCustSelect');
+  sel.disabled=false;
   sel.innerHTML=data.customers.map(function(c){return'<option value="'+c.id+'"'+(c.id===custId?' selected':'')+'>'+c.name+'</option>';}).join('');
+  document.getElementById('svcType').value='maintenance';
   document.getElementById('svcDate').value=new Date().toISOString().split('T')[0];
   var next=new Date();next.setMonth(next.getMonth()+6);
   document.getElementById('svcNextDate').value=next.toISOString().split('T')[0];
   document.getElementById('svcFee').value='';
   document.getElementById('svcNote').value='';
   document.getElementById('svcTech').value='';
+  var t=document.querySelector('#addServiceModal .svc-modal-title');if(t)t.textContent='Servis Kaydi';
+  var btn=document.querySelector('#addServiceModal .svc-submit-btn');if(btn)btn.textContent='Kaydet';
   document.getElementById('addServiceModal').classList.add('open');
 }
-function closeAddServiceModal(){document.getElementById('addServiceModal').classList.remove('open');}
+function openEditServiceModal(recordId){
+  var data=_svcCache;
+  var r=(data.records||[]).find(function(x){return x.id===recordId;});
+  if(!r)return;
+  _editingRecordId=recordId;
+  var sel=document.getElementById('svcCustSelect');
+  sel.innerHTML=data.customers.map(function(c){return'<option value="'+c.id+'"'+(c.id===r.custId?' selected':'')+'>'+c.name+'</option>';}).join('');
+  sel.disabled=true;
+  document.getElementById('svcType').value=r.type||'maintenance';
+  document.getElementById('svcDate').value=r.date||'';
+  document.getElementById('svcNextDate').value=r.nextDate||'';
+  document.getElementById('svcFee').value=r.fee||'';
+  document.getElementById('svcNote').value=r.note||'';
+  document.getElementById('svcTech').value=r.tech||'';
+  var t=document.querySelector('#addServiceModal .svc-modal-title');if(t)t.textContent='Servis Kaydini Düzenle';
+  var btn=document.querySelector('#addServiceModal .svc-submit-btn');if(btn)btn.textContent='Güncelle';
+  document.getElementById('addServiceModal').classList.add('open');
+}
+function closeAddServiceModal(){document.getElementById('addServiceModal').classList.remove('open');_editingRecordId=null;document.getElementById('svcCustSelect').disabled=false;}
 function saveServiceRecord(){
   var custId=document.getElementById('svcCustSelect').value;
   if(!custId){showToast('Musteri secin!');return;}
@@ -314,18 +342,33 @@ function saveServiceRecord(){
   };
   var btn=document.querySelector('#addServiceModal .svc-submit-btn');
   if(btn){btn.disabled=true;btn.textContent='Kaydediliyor...';}
-  Api.addRecord(payload).then(function(){
+  var wasEditing=_editingRecordId;
+  var req=wasEditing?Api.updateRecord(wasEditing,payload):Api.addRecord(payload);
+  req.then(function(){
     return Api.getSvcData();
   }).then(function(d){
     _svcCache = d;
     closeAddServiceModal();
     renderSvcDashboard(_svcCache);renderSvcCustomerList(null, _svcCache);
     if(activeSvcCustomer)showCustomerDetail(activeSvcCustomer);
-    showToast('Servis kaydi eklendi');
+    showToast(wasEditing?'Servis kaydi guncellendi':'Servis kaydi eklendi');
   }).catch(function(e){
     showToast('Hata: '+(e.message||'Kaydedilemedi'));
   }).finally(function(){
-    if(btn){btn.disabled=false;btn.textContent='Kaydet';}
+    if(btn){btn.disabled=false;btn.textContent=wasEditing?'Güncelle':'Kaydet';}
+  });
+}
+function deleteSvcRecord(recordId){
+  if(!confirm('Bu servis kaydi silinecek, emin misiniz?'))return;
+  Api.deleteRecord(recordId).then(function(){
+    return Api.getSvcData();
+  }).then(function(d){
+    _svcCache = d;
+    renderSvcDashboard(_svcCache);renderSvcCustomerList(null, _svcCache);
+    if(activeSvcCustomer)showCustomerDetail(activeSvcCustomer);
+    showToast('Servis kaydi silindi');
+  }).catch(function(e){
+    showToast('Hata: '+(e.message||'Silinemedi'));
   });
 }
 function deleteSvcCustomer(custId){
