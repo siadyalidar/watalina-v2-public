@@ -63,6 +63,32 @@ const migrate = db.transaction(() => {
   const pcols = col('product_overrides');
   if (!pcols.includes('stock_qty'))     db.exec("ALTER TABLE product_overrides ADD COLUMN stock_qty INTEGER DEFAULT NULL");
   if (!pcols.includes('stock_tracked')) db.exec("ALTER TABLE product_overrides ADD COLUMN stock_tracked INTEGER NOT NULL DEFAULT 0");
+
+  // il / ilce kolonlarini ekle
+  const custCols = col('service_customers');
+  if (!custCols.includes('il')) {
+    db.exec("ALTER TABLE service_customers ADD COLUMN il TEXT DEFAULT ''");
+  }
+  if (!custCols.includes('ilce')) {
+    db.exec("ALTER TABLE service_customers ADD COLUMN ilce TEXT DEFAULT ''");
+  }
+
+  const needsMigration = db.prepare(
+    "SELECT id, city FROM service_customers WHERE city != '' AND il = ''"
+  ).all();
+
+  if (needsMigration.length) {
+    const updateStmt = db.prepare(
+      "UPDATE service_customers SET il = ?, ilce = ? WHERE id = ?"
+    );
+    for (const row of needsMigration) {
+      const parts = row.city.split('-').map(s => s.trim());
+      const il = parts[0] || '';
+      const ilce = parts[1] || '';
+      updateStmt.run(il, ilce, row.id);
+    }
+    console.log(`[migration] ${needsMigration.length} musterinin il/ilce bilgisi city alanindan tasindi - admin panelinden kontrol edin.`);
+  }
 });
 
 migrate();

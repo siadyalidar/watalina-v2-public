@@ -31,11 +31,42 @@ function typeLabel(t){return{maintenance:'Periyodik Bakım',filter:'Filtre Deği
 function isFilterRelatedType(t){return t==='filter'||t==='maintenance'||t==='sok-tak';}
 function typeBadgeClass(t){return{maintenance:'badge-maintenance',filter:'badge-filter',install:'badge-install',repair:'badge-repair',visit:'badge-maintenance'}[t]||'badge-maintenance';}
 
+// ══ IL / ILCE DROPDOWN ══════════════════════════════════
+function populateIlDropdown(){
+  var ilSelect=document.getElementById('newCustIl');
+  if(!ilSelect)return;
+  var izmir=IL_ILCE_DATA.find(function(r){return r.il==='İzmir';});
+  var digerleri=IL_ILCE_DATA.filter(function(r){return r.il!=='İzmir';});
+  var sirali=izmir?[izmir].concat(digerleri):IL_ILCE_DATA;
+  ilSelect.innerHTML='<option value="">Il secin</option>'+sirali.map(function(row){
+    return '<option value="'+row.il+'">'+row.il+'</option>';
+  }).join('');
+}
+function populateIlceDropdown(ilAdi, selectedIlce){
+  var ilceSelect=document.getElementById('newCustIlce');
+  if(!ilceSelect)return;
+  var ilData=IL_ILCE_DATA.find(function(r){return r.il===ilAdi;});
+  if(!ilData){
+    ilceSelect.innerHTML='<option value="">Once il secin</option>';
+    ilceSelect.disabled=true;
+    return;
+  }
+  ilceSelect.disabled=false;
+  ilceSelect.innerHTML='<option value="">Ilce secin</option>'+ilData.ilceler.map(function(ilce){
+    var sel=(ilce===selectedIlce)?' selected':'';
+    return '<option value="'+ilce+'"'+sel+'>'+ilce+'</option>';
+  }).join('');
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var ilSel=document.getElementById('newCustIl');
+  if(ilSel) ilSel.addEventListener('change', function(e){ populateIlceDropdown(e.target.value, null); });
+});
+
 // ══ CUSTOMER LIST ═══════════════════════════════════════
 function renderSvcCustomerList(filter, data){
   if(!data) data=_svcCache;
   var custs=data.customers||[];
-  if(filter)custs=custs.filter(function(c){return(c.name+' '+(c.city||'')).toLowerCase().includes(filter);});
+  if(filter)custs=custs.filter(function(c){return(c.name+' '+(c.il||'')+' '+(c.ilce||'')).toLowerCase().includes(filter);});
   var list=document.getElementById('svcCustomerList');
   if(!list)return;
   if(!custs.length){list.innerHTML='<div style="padding:16px;font-size:.74rem;color:var(--c-ink3);text-align:center">Musteri yok.<br>Eklemek icin + butonunu kullanin.</div>';return;}
@@ -47,7 +78,7 @@ function renderSvcCustomerList(filter, data){
     var isActive=activeSvcCustomer===cust.id;
     return'<div class="svc-cust-item '+(isActive?'active':'')+'" data-action="openSvcCustomer" data-custid="'+cust.id+'">'
       +'<div class="sci-name">'+cust.name+'</div>'
-      +'<div class="sci-device">'+(cust.device||'Cihaz belirtilmemis')+' - '+(cust.city||'')+'</div>'
+      +'<div class="sci-device">'+(cust.device||'Cihaz belirtilmemis')+' - '+(cust.il?cust.il+' / '+cust.ilce:'')+'</div>'
       +(nextDate?'<span class="sci-next '+urg+'">'+urgencyLabel(nextDate)+'</span>':'<span class="sci-next ok">Guncel</span>')
       +'</div>';
   }).join('');
@@ -127,7 +158,7 @@ function renderDailyRoute(data){
   if(!routeItems.length){el.innerHTML='<div style="padding:18px;text-align:center;color:var(--c-ink3);font-size:.78rem">Bugun icin planlanmis acil is bulunmuyor.</div>';return;}
   el.innerHTML='<div class="route-hdr"><span class="route-hdr-title">Bugun '+routeItems.length+' Durak</span><span style="color:rgba(255,255,255,.5);font-size:.63rem">'+now.toLocaleDateString('tr-TR')+'</span></div>'
     +routeItems.slice(0,8).map(function(item,i){
-      return'<div class="route-item"><div class="route-num">'+(i+1)+'</div><div class="route-info"><div class="route-name">'+item.cust.name+'</div><div class="route-addr">'+(item.cust.address||item.cust.city||'Adres girilmemis')+' - '+typeLabel(item.type)+'</div></div><span class="route-badge '+(item.urg==='urgent'?'rb-urgent':'rb-normal')+'">'+item.note+'</span></div>';
+      return'<div class="route-item"><div class="route-num">'+(i+1)+'</div><div class="route-info"><div class="route-name">'+item.cust.name+'</div><div class="route-addr">'+(item.cust.address||(item.cust.il?item.cust.il+' / '+item.cust.ilce:'')||'Adres girilmemis')+' - '+typeLabel(item.type)+'</div></div><span class="route-badge '+(item.urg==='urgent'?'rb-urgent':'rb-normal')+'">'+item.note+'</span></div>';
     }).join('');
 }
 
@@ -146,7 +177,7 @@ function renderUpcoming(data){
   el.innerHTML=items.slice(0,10).map(function(item){
     return'<div class="upcoming-card '+item.urg+'" data-action="openSvcCustomer" data-custid="'+item.cust.id+'">'
       +'<div class="uc-icon '+item.urg+'">'+(icons[item.type]||'?')+'</div>'
-      +'<div class="uc-info"><div class="uc-name">'+item.cust.name+'</div><div class="uc-detail">'+(item.cust.device||'Cihaz')+' - '+(item.cust.city||'')+'</div>'
+      +'<div class="uc-info"><div class="uc-name">'+item.cust.name+'</div><div class="uc-detail">'+(item.cust.device||'Cihaz')+' - '+(item.cust.il?item.cust.il+' / '+item.cust.ilce:'')+'</div>'
       +'<span class="uc-type-badge '+typeBadgeClass(item.type)+'">'+typeLabel(item.type)+'</span></div>'
       +'<div class="uc-date '+item.urg+'"><div>'+(item.nextDate?new Date(item.nextDate).toLocaleDateString('tr-TR',{day:'numeric',month:'short'}):'-')+'</div>'
       +'<div style="font-size:.6rem;font-weight:500;margin-top:2px">'+urgencyLabel(item.nextDate)+'</div></div>'
@@ -173,7 +204,7 @@ function showCustomerDetail(custId){
   if(hdr)hdr.innerHTML=
     '<div class="cdh-avatar">'+initials+'</div>'
     +'<div style="flex:1"><div class="cdh-name">'+cust.name+'</div>'
-    +'<div class="cdh-meta">'+(cust.device?cust.device+' - ':'')+(cust.phone||'')+(cust.city?' - '+cust.city:'')+(cust.address?'<br>'+cust.address:'')+'</div>'
+    +'<div class="cdh-meta">'+(cust.device?cust.device+' - ':'')+(cust.phone||'')+(cust.il?' - '+cust.il+' / '+cust.ilce:'')+(cust.address?'<br>'+cust.address:'')+'</div>'
     +(nextDate?'<div style="margin-top:6px"><span class="sci-next '+urg+'">Sonraki: '+new Date(nextDate).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})+' - '+urgencyLabel(nextDate)+'</span></div>':'')
     +'</div>'
     +'<div class="cdh-actions">'
@@ -234,7 +265,10 @@ var _editingCustId=null;
 function openAddCustomerModal(){
   _editingCustId=null;
   document.getElementById('newCustInstall').value=new Date().toISOString().split('T')[0];
-  ['newCustName','newCustPhone','newCustCity','newCustAddr','newCustDevice','newCustNote'].forEach(function(id){document.getElementById(id).value='';});
+  ['newCustName','newCustPhone','newCustIl','newCustIlce','newCustAddr','newCustDevice','newCustNote'].forEach(function(id){document.getElementById(id).value='';});
+  populateIlDropdown();
+  document.getElementById('newCustIlce').innerHTML='<option value="">Once il secin</option>';
+  document.getElementById('newCustIlce').disabled=true;
   var btn=document.querySelector('#addCustomerModal .svc-submit-btn');if(btn)btn.textContent='Kaydet';
   document.querySelector('#addCustomerModal .svc-modal-hdr span').textContent='Yeni Müşteri';
   document.getElementById('addCustomerModal').classList.add('open');
@@ -247,7 +281,9 @@ function openEditCustomerModal(custId){
   _editingCustId=custId;
   document.getElementById('newCustName').value=c.name||'';
   document.getElementById('newCustPhone').value=c.phone||'';
-  document.getElementById('newCustCity').value=c.city||'';
+  populateIlDropdown();
+  document.getElementById('newCustIl').value=c.il||'';
+  populateIlceDropdown(c.il||'', c.ilce||'');
   document.getElementById('newCustAddr').value=c.address||'';
   document.getElementById('newCustDevice').value=c.device||'';
   document.getElementById('newCustInstall').value=c.installDate||'';
@@ -264,7 +300,8 @@ function saveNewCustomer(){
   var payload={
     name:name,
     phone:document.getElementById('newCustPhone').value.trim(),
-    city:document.getElementById('newCustCity').value.trim(),
+    il:document.getElementById('newCustIl').value.trim(),
+    ilce:document.getElementById('newCustIlce').value.trim(),
     address:document.getElementById('newCustAddr').value.trim(),
     device:document.getElementById('newCustDevice').value.trim(),
     installDate:document.getElementById('newCustInstall').value,
@@ -284,7 +321,7 @@ function saveNewCustomer(){
     if(_editingCustId){showToast('Güncellendi: '+name);if(activeSvcCustomer)showCustomerDetail(activeSvcCustomer);}
     else{showToast('Eklendi: '+name);}
     _editingCustId=null;
-    ['newCustName','newCustPhone','newCustCity','newCustAddr','newCustDevice','newCustNote'].forEach(function(id){document.getElementById(id).value='';});
+    ['newCustName','newCustPhone','newCustIl','newCustIlce','newCustAddr','newCustDevice','newCustNote'].forEach(function(id){document.getElementById(id).value='';});
   }).catch(function(e){
     showToast('Hata: '+(e.message||'Kaydedilemedi'));
   }).finally(function(){

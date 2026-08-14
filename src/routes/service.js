@@ -10,6 +10,8 @@ const mapCustomer = r => ({
   id:          String(r.id),
   name:        r.name,
   phone:       r.phone,
+  il:        r.il,
+  ilce:        r.ilce,
   city:        r.city,
   address:     r.address,
   device:      r.device,
@@ -39,10 +41,10 @@ router.get('/customers', auth(['admin', 'service']), (req, res) => {
 
 // POST /api/service/customers
 router.post('/customers', auth(['admin', 'service']), (req, res) => {
-  const { name, phone, city, address, device, installDate, note } = req.body || {};
+  const { name, phone, il, ilce, address, device, installDate, note } = req.body || {};
   if (!name) return err(res, 'Müşteri adı gerekli');
   const info = stmts.insertCustomer.run(
-    name, phone || '', city || '', address || '',
+    name, phone || '', il || '', ilce || '', address || '',
     device || '', installDate || null, note || '', req.user.id
   );
   broadcastEvent('svc-changed', { resource: 'customers', action: 'create', id: String(info.lastInsertRowid), by: req.user.id });
@@ -52,9 +54,9 @@ router.post('/customers', auth(['admin', 'service']), (req, res) => {
 // PUT /api/service/customers/:id
 router.put('/customers/:id', auth(['admin', 'service']), (req, res) => {
   const id = Number(req.params.id);
-  const { name, phone, city, address, device, installDate, note } = req.body || {};
+  const { name, phone, il, ilce, address, device, installDate, note } = req.body || {};
   if (!name) return err(res, 'Müşteri adı gerekli');
-  stmts.updateCustomer.run(name, phone || '', city || '', address || '', device || '', installDate || null, note || '', id);
+  stmts.updateCustomer.run(name, phone || '', il || '', ilce || '', address || '', device || '', installDate || null, note || '', id);
   broadcastEvent('svc-changed', { resource: 'customers', action: 'update', id: String(id), by: req.user.id });
   ok(res, { message: 'Güncellendi' });
 });

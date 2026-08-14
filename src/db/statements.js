@@ -43,10 +43,10 @@ const stmts = {
     ORDER BY sc.name ASC
   `),
   insertCustomer: db.prepare(
-    'INSERT INTO service_customers (name, phone, city, address, device, install_date, notes, created_by) VALUES (?,?,?,?,?,?,?,?)'
+    'INSERT INTO service_customers (name, phone, il, ilce, address, device, install_date, notes, created_by) VALUES (?,?,?,?,?,?,?,?,?)'
   ),
   updateCustomer: db.prepare(
-    'UPDATE service_customers SET name=?, phone=?, city=?, address=?, device=?, install_date=?, notes=? WHERE id=?'
+    'UPDATE service_customers SET name=?, phone=?, il=?, ilce=?, address=?, device=?, install_date=?, notes=? WHERE id=?'
   ),
   deleteCustomer: db.prepare('DELETE FROM service_customers WHERE id = ?'),
 

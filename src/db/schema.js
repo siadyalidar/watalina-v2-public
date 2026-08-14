@@ -45,6 +45,8 @@ db.exec(`
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT    NOT NULL,
     phone        TEXT    NOT NULL DEFAULT '',
+    il           TEXT    NOT NULL DEFAULT '',
+    ilce         TEXT    NOT NULL DEFAULT '',
     city         TEXT    NOT NULL DEFAULT '',
     address      TEXT    NOT NULL DEFAULT '',
     device       TEXT    NOT NULL DEFAULT '',

@@ -495,7 +495,7 @@
     <div class="svc-form-grid">
       <div class="svc-field svc-form-full"><label>Firma / Musteri Adi</label><input id="newCustName" placeholder="Ad veya firma"></div>
       <div class="svc-field"><label>Telefon</label><input id="newCustPhone" type="tel" placeholder="+90..."></div>
-      <div class="svc-field"><label>Sehir / Ilce</label><input id="newCustCity" placeholder="Izmir, Bornova..."></div>
+      <div class="svc-field"><label>Il</label><select id="newCustIl"><option value="">Il secin</option></select></div><div class="svc-field"><label>Ilce</label><select id="newCustIlce" disabled><option value="">Once il secin</option></select></div>
       <div class="svc-field svc-form-full"><label>Adres</label><input id="newCustAddr" placeholder="Tam adres"></div>
       <div class="svc-field"><label>Cihaz Modeli</label><input id="newCustDevice" placeholder="Aliwa Pompali, Flora..."></div>
       <div class="svc-field"><label>Kurulum Tarihi</label><input id="newCustInstall" type="date"></div>
@@ -925,6 +925,7 @@
 <input type="file" id="adminImgPicker" accept="image/*" style="display:none">
 <div id="toast"></div>
 
+<script src="/js/il-ilce-data.js"></script>
 <script src="/js/data.js"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/api.js"></script>
