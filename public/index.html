@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WATALINA</title>
 <link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 </head>
 </head>
 <body>
@@ -454,6 +457,46 @@
     <!-- Dashboard -->
     <div id="svcDashView">
       <div class="svc-kpi-row" id="svcKpiRow"></div>
+
+      <!-- İl / İlçe / Durum filtreleri — liste, harita, KPI ve alt panelleri aynı anda kontrol eder -->
+      <div class="svc-filter-bar" id="svcFilterBar">
+        <div class="svc-filter-group">
+          <select id="svcFilterIl" class="svc-filter-select"><option value="">Tüm İller</option></select>
+          <select id="svcFilterIlce" class="svc-filter-select" disabled><option value="">Tüm İlçeler</option></select>
+        </div>
+        <div class="svc-status-legend" id="svcStatusLegend">
+          <button type="button" class="svc-status-chip active" data-status="">Tümü</button>
+          <button type="button" class="svc-status-chip" data-status="normal"><span class="svc-dot" style="background:#005bcc"></span>Normal</button>
+          <button type="button" class="svc-status-chip" data-status="upcoming"><span class="svc-dot" style="background:#d97706"></span>Yaklaşan</button>
+          <button type="button" class="svc-status-chip" data-status="overdue"><span class="svc-dot" style="background:#dc2626"></span>Gecikmiş</button>
+          <button type="button" class="svc-status-chip" data-status="completed"><span class="svc-dot" style="background:#059669"></span>Tamamlandı</button>
+        </div>
+        <button type="button" class="svc-filter-clear" id="svcFilterClearBtn" style="display:none">Filtreleri Temizle ✕</button>
+      </div>
+
+      <!-- İnteraktif harita + performans paneli -->
+      <div class="svc-map-perf-row">
+        <div class="svc-map-card">
+          <div class="svc-map-card-hdr">
+            <span>Servis Haritası</span>
+            <span class="svc-map-count" id="svcMapCount"></span>
+          </div>
+          <div class="svc-map-geocode-banner" id="svcGeocodeBanner" style="display:none">
+            <span id="svcGeocodeBannerText"></span>
+            <button type="button" class="svc-geocode-btn" id="svcGeocodeBtn">Konumları Belirle</button>
+          </div>
+          <div class="svc-map-wrap" id="svcMapWrap"><div id="svcMapEl" class="svc-map-el"></div></div>
+          <div class="svc-map-empty" id="svcMapEmpty">
+            <div>Henüz müşteri bulunmuyor.</div>
+            <span>İlk müşteriyi eklediğinizde konumları burada göreceksiniz.</span>
+          </div>
+        </div>
+        <div class="svc-perf-card">
+          <div class="svc-perf-hdr">Performans</div>
+          <div id="svcPerfPanel"></div>
+        </div>
+      </div>
+
       <div class="ai-box" id="aiSuggestions"></div>
       <div class="svc-section-title">
         <span>Bugunun Rotasi</span>
@@ -937,6 +980,9 @@
 <script src="/js/pdf.js"></script>
 <script src="/js/orders.js"></script>
 <script src="/js/service.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="/js/service-map.js"></script>
 <script src="/js/admin.js"></script>
 <script src="/js/report.js"></script>
   <script src="/js/performance.js"></script>

@@ -42,12 +42,30 @@ const stmts = {
     FROM service_customers sc JOIN users u ON sc.created_by = u.id
     ORDER BY sc.name ASC
   `),
+  getCustomerById: db.prepare('SELECT * FROM service_customers WHERE id = ?'),
   insertCustomer: db.prepare(
     'INSERT INTO service_customers (name, phone, il, ilce, address, device, install_date, notes, created_by) VALUES (?,?,?,?,?,?,?,?,?)'
   ),
   updateCustomer: db.prepare(
     'UPDATE service_customers SET name=?, phone=?, il=?, ilce=?, address=?, device=?, install_date=?, notes=? WHERE id=?'
   ),
+  updateCustomerCoords: db.prepare(
+    "UPDATE service_customers SET latitude=?, longitude=?, geo_precision=?, geocoded_at=datetime('now') WHERE id=?"
+  ),
+  clearCustomerCoords: db.prepare(
+    'UPDATE service_customers SET latitude=NULL, longitude=NULL, geo_precision=NULL, geocoded_at=NULL WHERE id=?'
+  ),
+  getCustomersMissingCoords: db.prepare(`
+    SELECT * FROM service_customers
+    WHERE (latitude IS NULL OR longitude IS NULL)
+      AND (TRIM(COALESCE(il,'')) != '' OR TRIM(COALESCE(ilce,'')) != '' OR TRIM(COALESCE(address,'')) != '')
+    ORDER BY id ASC
+  `),
+  countCustomersMissingCoords: db.prepare(`
+    SELECT COUNT(*) as cnt FROM service_customers
+    WHERE (latitude IS NULL OR longitude IS NULL)
+      AND (TRIM(COALESCE(il,'')) != '' OR TRIM(COALESCE(ilce,'')) != '' OR TRIM(COALESCE(address,'')) != '')
+  `),
   deleteCustomer: db.prepare('DELETE FROM service_customers WHERE id = ?'),
 
   // ── Service Records ────────────────────────────────

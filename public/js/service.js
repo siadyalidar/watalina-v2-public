@@ -65,11 +65,17 @@ document.addEventListener('DOMContentLoaded', function(){
 // ══ CUSTOMER LIST ═══════════════════════════════════════
 function renderSvcCustomerList(filter, data){
   if(!data) data=_svcCache;
-  var custs=data.customers||[];
-  if(filter)custs=custs.filter(function(c){return(c.name+' '+(c.il||'')+' '+(c.ilce||'')).toLowerCase().includes(filter);});
+  if(typeof filter==='string' && typeof SvcFilter!=='undefined') SvcFilter.search=filter;
+  var custs=(typeof getFilteredCustomers==='function') ? getFilteredCustomers(data) : (data.customers||[]);
   var list=document.getElementById('svcCustomerList');
   if(!list)return;
-  if(!custs.length){list.innerHTML='<div style="padding:16px;font-size:.74rem;color:var(--c-ink3);text-align:center">Musteri yok.<br>Eklemek icin + butonunu kullanin.</div>';return;}
+  if(!custs.length){
+    var noData=!(data.customers||[]).length;
+    list.innerHTML='<div style="padding:16px;font-size:.74rem;color:var(--c-ink3);text-align:center">'
+      +(noData?'Musteri yok.<br>Eklemek icin + butonunu kullanin.':'Filtreyle eslesen musteri yok.')
+      +'</div>';
+    return;
+  }
   list.innerHTML=custs.map(function(cust){
     var recs=(data.records||[]).filter(function(r){return r.custId===cust.id;}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
     var last=recs[0];
@@ -83,13 +89,25 @@ function renderSvcCustomerList(filter, data){
       +'</div>';
   }).join('');
 }
-function filterSvcCustomers(v){renderSvcCustomerList(v.toLowerCase(), _svcCache);}
+function filterSvcCustomers(v){
+  if(typeof SvcFilter!=='undefined') SvcFilter.search=v.toLowerCase();
+  renderSvcCustomerList(v.toLowerCase(), _svcCache);
+  if(typeof renderSvcMap==='function') renderSvcMap(_svcCache);
+  if(typeof updateSvcFilterClearVisibility==='function') updateSvcFilterClearVisibility();
+}
 
 // ══ DASHBOARD ═══════════════════════════════════════════
 function renderSvcDashboard(data){
   if(!data) data=_svcCache;
-  var custs=data.customers||[];
-  var recs=data.records||[];
+  // Merkezi filtre state'i (il/ilce/durum/arama) — liste, harita, KPI ve
+  // alt panellerin (oneriler, rota, yaklasan bakimlar, performans) hepsi
+  // ayni filtrelenmis veri kumesini kullanir.
+  var custs=(typeof getFilteredCustomers==='function') ? getFilteredCustomers(data) : (data.customers||[]);
+  var custIdSet={};
+  custs.forEach(function(c){custIdSet[c.id]=true;});
+  var recs=(data.records||[]).filter(function(r){return custIdSet[r.custId];});
+  var filteredData={customers:custs, records:recs};
+
   var now=new Date();
   var urgentCount=0,soonCount=0,thisMonth=0;
   custs.forEach(function(c){
@@ -112,9 +130,11 @@ function renderSvcDashboard(data){
   if(badge) badge.textContent = urgentCount + soonCount;
   // Mirror into AppState for other parts of the UI
   AppState._urgentCount = urgentCount + soonCount;
-  renderAiSuggestions(data);
-  renderDailyRoute(data);
-  renderUpcoming(data);
+  renderAiSuggestions(filteredData);
+  renderDailyRoute(filteredData);
+  renderUpcoming(filteredData);
+  if(typeof renderSvcPerformancePanel==='function') renderSvcPerformancePanel(filteredData);
+  if(typeof renderSvcMap==='function') renderSvcMap(data);
 }
 
 function renderAiSuggestions(data){
@@ -188,6 +208,7 @@ function renderUpcoming(data){
 // ══ CUSTOMER DETAIL ═════════════════════════════════════
 function showCustomerDetail(custId){
   activeSvcCustomer=custId;
+  if(typeof selectSvcMapCustomer==='function') selectSvcMapCustomer(custId, true);
   var data=_svcCache;
   var cust=data.customers.find(function(c){return c.id===custId;});
   if(!cust)return;

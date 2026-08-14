@@ -89,6 +89,14 @@ const migrate = db.transaction(() => {
     }
     console.log(`[migration] ${needsMigration.length} musterinin il/ilce bilgisi city alanindan tasindi - admin panelinden kontrol edin.`);
   }
+
+  // Harita icin konum kolonlari — musteri adresinden geocode edilip
+  // kalicı olarak saklanir, her sayfa acilisinda tekrar hesaplanmaz.
+  const custCols2 = col('service_customers');
+  if (!custCols2.includes('latitude'))     db.exec("ALTER TABLE service_customers ADD COLUMN latitude REAL DEFAULT NULL");
+  if (!custCols2.includes('longitude'))    db.exec("ALTER TABLE service_customers ADD COLUMN longitude REAL DEFAULT NULL");
+  if (!custCols2.includes('geocoded_at'))  db.exec("ALTER TABLE service_customers ADD COLUMN geocoded_at TEXT DEFAULT NULL");
+  if (!custCols2.includes('geo_precision')) db.exec("ALTER TABLE service_customers ADD COLUMN geo_precision TEXT DEFAULT NULL");
 });
 
 migrate();

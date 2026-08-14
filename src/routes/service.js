@@ -2,9 +2,10 @@
 'use strict';
 const router = require('express').Router();
 const stmts  = require('../db/statements');
-const { auth }           = require('../middleware/auth');
-const { ok, err }        = require('../middleware/respond');
-const { broadcastEvent } = require('../middleware/sse');
+const { auth }             = require('../middleware/auth');
+const { ok, err }          = require('../middleware/respond');
+const { broadcastEvent }   = require('../middleware/sse');
+const { geocodeCustomer }  = require('../services/geocode');
 
 const mapCustomer = r => ({
   id:          String(r.id),
@@ -18,7 +19,32 @@ const mapCustomer = r => ({
   installDate: r.install_date,
   note:        r.notes,
   createdAt:   r.created_at,
+  lat:         typeof r.latitude  === 'number' ? r.latitude  : null,
+  lng:         typeof r.longitude === 'number' ? r.longitude : null,
+  geoPrecision: r.geo_precision || null,
+  geocodedAt:  r.geocoded_at || null,
 });
+
+// Adres alanları değişti mi? (gereksiz yeniden geocode yapmamak için)
+function addressChanged(oldRow, next) {
+  if (!oldRow) return true;
+  return (oldRow.il || '') !== (next.il || '')
+      || (oldRow.ilce || '') !== (next.ilce || '')
+      || (oldRow.address || '') !== (next.address || '');
+}
+
+// Best-effort geocode: başarısız olursa müşteri kaydı yine de oluşur/güncellenir,
+// koordinatlar sonradan "Konumları Belirle" ile veya bir sonraki güncellemede tamamlanabilir.
+async function tryGeocodeAndSave(customerId, { il, ilce, address }) {
+  try {
+    const hit = await geocodeCustomer({ il, ilce, address });
+    if (hit) {
+      stmts.updateCustomerCoords.run(hit.lat, hit.lon, hit.precision, customerId);
+      return true;
+    }
+  } catch (_e) { /* sessizce geç — konum daha sonra tekrar denenebilir */ }
+  return false;
+}
 
 const mapRecord = r => ({
   id:        String(r.id),
@@ -40,25 +66,71 @@ router.get('/customers', auth(['admin', 'service']), (req, res) => {
 });
 
 // POST /api/service/customers
-router.post('/customers', auth(['admin', 'service']), (req, res) => {
+router.post('/customers', auth(['admin', 'service']), async (req, res) => {
   const { name, phone, il, ilce, address, device, installDate, note } = req.body || {};
   if (!name) return err(res, 'Müşteri adı gerekli');
   const info = stmts.insertCustomer.run(
     name, phone || '', il || '', ilce || '', address || '',
     device || '', installDate || null, note || '', req.user.id
   );
-  broadcastEvent('svc-changed', { resource: 'customers', action: 'create', id: String(info.lastInsertRowid), by: req.user.id });
-  ok(res, { id: info.lastInsertRowid });
+  const id = info.lastInsertRowid;
+
+  // Konum belirleme: müşteri il/ilçe/adres girdiyse arka planda geocode edilir,
+  // kullanıcı "Kaydet" tıkladıktan hemen sonra beklemesin diye kısa süre denenir,
+  // sonuç gelmezse "Konumları Belirle" ile daha sonra tamamlanabilir.
+  let geocoded = false;
+  if (il || ilce || address) {
+    geocoded = await tryGeocodeAndSave(id, { il, ilce, address });
+  }
+
+  broadcastEvent('svc-changed', { resource: 'customers', action: 'create', id: String(id), by: req.user.id });
+  ok(res, { id, geocoded });
 });
 
 // PUT /api/service/customers/:id
-router.put('/customers/:id', auth(['admin', 'service']), (req, res) => {
+router.put('/customers/:id', auth(['admin', 'service']), async (req, res) => {
   const id = Number(req.params.id);
   const { name, phone, il, ilce, address, device, installDate, note } = req.body || {};
   if (!name) return err(res, 'Müşteri adı gerekli');
+
+  const existing = stmts.getCustomerById.get(id);
   stmts.updateCustomer.run(name, phone || '', il || '', ilce || '', address || '', device || '', installDate || null, note || '', id);
+
+  let geocoded = false;
+  if ((il || ilce || address) && addressChanged(existing, { il, ilce, address })) {
+    geocoded = await tryGeocodeAndSave(id, { il, ilce, address });
+  }
+
   broadcastEvent('svc-changed', { resource: 'customers', action: 'update', id: String(id), by: req.user.id });
-  ok(res, { message: 'Güncellendi' });
+  ok(res, { message: 'Güncellendi', geocoded });
+});
+
+// POST /api/service/customers/geocode-missing — konumu olmayan müşterileri toplu geocode eder.
+// Nominatim kullanım limiti gereği (sn başına 1 istek) tek seferde en fazla BATCH_SIZE
+// müşteri işlenir; kalan varsa frontend bu endpoint'i tekrar çağırarak ilerler.
+const GEOCODE_BATCH_SIZE = 12;
+router.post('/customers/geocode-missing', auth(['admin', 'service']), async (req, res) => {
+  const rows = stmts.getCustomersMissingCoords.all().slice(0, GEOCODE_BATCH_SIZE);
+  let geocodedCount = 0;
+  let failedCount = 0;
+  const updatedIds = [];
+
+  for (const row of rows) {
+    const hit = await tryGeocodeAndSave(row.id, { il: row.il, ilce: row.ilce, address: row.address });
+    if (hit) { geocodedCount++; updatedIds.push(String(row.id)); }
+    else failedCount++;
+  }
+
+  const remaining = stmts.countCustomersMissingCoords.get().cnt;
+  if (updatedIds.length) {
+    broadcastEvent('svc-changed', { resource: 'customers', action: 'geocode-batch', ids: updatedIds, by: req.user.id });
+  }
+  ok(res, { processed: rows.length, geocoded: geocodedCount, failed: failedCount, remaining, done: remaining === 0 });
+});
+
+// GET /api/service/customers/geocode-status — kaç müşterinin konumu eksik (banner için)
+router.get('/customers/geocode-status', auth(['admin', 'service']), (req, res) => {
+  ok(res, { missing: stmts.countCustomersMissingCoords.get().cnt });
 });
 
 // DELETE /api/service/customers/:id
